@@ -9,21 +9,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: 3.10
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
 
-    - name: Install deps
-      run: |
-        sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
-            build-essential autoconf libtool pkg-config
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            git zip unzip openjdk-17-jdk \
+            build-essential autoconf libtool pkg-config \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libgl1-mesa-dev libgles2-mesa-dev \
+            python3-pip
 
-        pip install --upgrade pip
-        pip install cython==0.29.36 buildozer kivy
+      - name: Upgrade pip and install python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install cython==0.29.36 buildozer kivy
 
-    - name: Build APK
-      run: |
-        buildozer android debug
+      - name: Cache buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            .buildozer
+            ~/.buildozer
+          key: buildozer-${{ runner.os }}
+
+      - name: Ensure buildozer.spec exists
+        run: |
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+
+      - name: Build APK
+        run: |
+          export PIP_BREAK_SYSTEM_PACKAGES=1
+          buildozer -v android debug
