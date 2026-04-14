@@ -17,7 +17,10 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install system dependencies
+      # ======================
+      # SYSTEM DEPENDENCIES
+      # ======================
+      - name: Install system deps
         run: |
           sudo apt update
           sudo apt install -y \
@@ -27,11 +30,17 @@ jobs:
             libgl1-mesa-dev libgles2-mesa-dev \
             python3-pip
 
-      - name: Upgrade pip and install python deps
+      # ======================
+      # PYTHON DEPENDENCIES
+      # ======================
+      - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
           pip install cython==0.29.36 buildozer kivy
 
+      # ======================
+      # CACHE BUILD
+      # ======================
       - name: Cache buildozer
         uses: actions/cache@v4
         with:
@@ -40,12 +49,35 @@ jobs:
             ~/.buildozer
           key: buildozer-${{ runner.os }}
 
-      - name: Ensure buildozer.spec exists
+      # ======================
+      # INIT BUILD ENV
+      # ======================
+      - name: Init buildozer spec
         run: |
           if [ ! -f buildozer.spec ]; then
             buildozer init
           fi
 
+      # ======================
+      # ANDROID ENV FIX
+      # ======================
+      - name: Setup Android env
+        run: |
+          echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/.buildozer/android/platform/android-sdk/platform-tools" >> $GITHUB_PATH
+
+      # ======================
+      # ACCEPT SDK LICENSES
+      # ======================
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p $HOME/.android
+          touch $HOME/.android/repositories.cfg
+          yes | buildozer android update || true
+
+      # ======================
+      # BUILD APK
+      # ======================
       - name: Build APK
         run: |
           export PIP_BREAK_SYSTEM_PACKAGES=1
